@@ -191,7 +191,11 @@
     </div>
     <div class="form-row" id="row-categoria" style="display:none">
       <label>Categoría</label>
-      <select id="f-categoria"></select>
+      <select id="f-categoria" onchange="updateSubcatSelect(this.value)"></select>
+    </div>
+    <div class="form-row" id="row-subcategoria" style="display:none">
+      <label>Subcategoría</label>
+      <select id="f-subcategoria"></select>
     </div>
     <div class="form-row">
       <label>Descripción</label>
@@ -411,6 +415,7 @@ const SUPABASE_KEY = 'sb_publishable_Rnkzcp1BTOTv_zpIXSmjyw_q8ee2Da2';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let categorias = [];
+let subcategorias = [];
 let chartCategorias = null, chartEvolucion = null, chartEstimados = null;
 
 // INIT
@@ -421,6 +426,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('dash-anio').value = hoy.getFullYear();
   document.getElementById('est-mes').value = hoy.getMonth() + 1;
   await loadCategorias();
+  await loadSubcategorias();
   await loadDashboard();
 });
 
@@ -486,6 +492,20 @@ function updateCatSelects() {
   });
 }
 
+async function loadSubcategorias() {
+  const { data } = await sb.from('subcategorias').select('*').order('nombre');
+  subcategorias = data || [];
+}
+
+function updateSubcatSelect(categoriaId) {
+  const row = document.getElementById('row-subcategoria');
+  const sel = document.getElementById('f-subcategoria');
+  const subs = subcategorias.filter(s => s.categoria_id == categoriaId);
+  if (!subs.length) { row.style.display = 'none'; return; }
+  sel.innerHTML = '<option value="">Sin subcategoría</option>' + subs.map(s => `<option value="${s.id}">${s.nombre}</option>`).join('');
+  row.style.display = 'block';
+}
+
 function filterCatsByTipo(tipo) {
   const fCat = document.getElementById('f-categoria');
   fCat.innerHTML = '';
@@ -544,6 +564,7 @@ async function guardarMovimiento() {
   const persona = document.getElementById('f-persona').value;
   const cuotaActual = document.getElementById('f-cuota-actual').value;
   const cuotaTotal = document.getElementById('f-cuota-total').value;
+  const subcatId = document.getElementById('f-subcategoria').value;
 
   if (!tipo || !desc || !fecha || (!montoArs && !montoUsd)) {
     toast('Completá todos los campos obligatorios', 'error'); return;
@@ -554,6 +575,7 @@ async function guardarMovimiento() {
     monto_ars: montoArs ? parseFloat(montoArs) : null,
     monto_usd: montoUsd ? parseFloat(montoUsd) : null,
     categoria_id: catId ? parseInt(catId) : null,
+    subcategoria_id: subcatId ? parseInt(subcatId) : null,
     fuente: fuente || null,
     persona: persona || null,
     cuota_actual: cuotaActual ? parseInt(cuotaActual) : null,
